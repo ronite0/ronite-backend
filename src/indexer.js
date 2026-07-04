@@ -95,11 +95,17 @@ async function tick() {
   let from = (await getLastBlock()) + 1;
   if (from > latest) return;
 
+  const totalBlocks = latest - from + 1;
+  console.log(`[indexer] catching up: ${from} -> ${latest} (${totalBlocks} blocks)`);
+
+  let scanned = 0;
   while (from <= latest) {
     const to = Math.min(from + CHUNK_BLOCKS - 1, latest);
     try {
       await scanRange(from, to);
       await setLastBlock(to);
+      scanned += to - from + 1;
+      console.log(`[indexer] progress: block ${to} (${((scanned / totalBlocks) * 100).toFixed(1)}%)`);
     } catch (err) {
       console.error(`[indexer] scan [${from},${to}] failed:`, err.message);
       break; // leave last_block where it was — retry this same range next tick
