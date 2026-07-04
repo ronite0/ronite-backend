@@ -17,10 +17,10 @@ async function setLastBlock(n) {
 
 async function upsertToken(row) {
   await pool.query(
-    `insert into tokens (address, curve_address, creator, name, symbol, image_uri, created_at)
-     values (lower($1), lower($2), lower($3), $4, $5, $6, $7)
+    `insert into tokens (address, curve_address, creator, name, symbol, image_uri, description, created_at)
+     values (lower($1), lower($2), lower($3), $4, $5, $6, $7, $8)
      on conflict (address) do nothing`,
-    [row.address, row.curveAddress, row.creator, row.name, row.symbol, row.imageUri, row.createdAt]
+    [row.address, row.curveAddress, row.creator, row.name, row.symbol, row.imageUri, row.description, row.createdAt]
   );
 }
 
@@ -52,9 +52,9 @@ async function scanRange(fromBlock, toBlock) {
   // 1. Any tokens launched in this block range.
   const createdEvents = await factory.queryFilter(factory.filters.TokenCreated(), fromBlock, toBlock);
   for (const ev of createdEvents) {
-    const [token, curve, creator, name, symbol, imageUri, timestamp] = ev.args;
+    const [token, curve, creator, name, symbol, imageUri, description, timestamp] = ev.args;
     await upsertToken({
-      address: token, curveAddress: curve, creator, name, symbol, imageUri,
+      address: token, curveAddress: curve, creator, name, symbol, imageUri, description,
       createdAt: Number(timestamp),
     });
     console.log(`[indexer] new token ${symbol} (${token}) curve=${curve}`);
