@@ -11,7 +11,7 @@ export const provider = new JsonRpcProvider(
 // frontend project at all.
 export const FACTORY_ABI = [
   "function getAllTokens() view returns (address[])",
-  "event TokenCreated(address indexed token, address indexed curve, address indexed creator, string name, string symbol, string imageUri, uint256 timestamp)",
+  "event TokenCreated(address indexed token, address indexed curve, address indexed creator, string name, string symbol, string imageUri, string description, uint256 timestamp)",
 ];
 
 export const CURVE_ABI = [
