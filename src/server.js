@@ -9,9 +9,15 @@ export function createServer() {
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
 
+  // Route prefix + response shape here (`{ tokens: [...] }`, `{ trades: [...] }`)
+  // match what useronitefuntrade.ts's loadMetadata() / usetokentrades.ts's
+  // backend-first path already expect — this contract predates this
+  // service, so the backend conforms to the frontend rather than the
+  // other way round.
+
   // Everything the token grid (RoniteFunTradePage) needs, precomputed —
   // no more crawling getAllTokens() + per-token RPC calls on every load.
-  app.get("/tokens", async (_req, res, next) => {
+  app.get("/api/ronitefun/tokens", async (_req, res, next) => {
     try {
       const { rows } = await pool.query(
         `select address, curve_address as "curveAddress", creator, name, symbol,
@@ -20,11 +26,11 @@ export function createServer() {
          from tokens
          order by created_at desc`
       );
-      res.json(rows);
+      res.json({ tokens: rows });
     } catch (err) { next(err); }
   });
 
-  app.get("/tokens/:address", async (req, res, next) => {
+  app.get("/api/ronitefun/tokens/:address", async (req, res, next) => {
     try {
       const { rows } = await pool.query(
         `select address, curve_address as "curveAddress", creator, name, symbol,
@@ -34,7 +40,7 @@ export function createServer() {
         [req.params.address]
       );
       if (rows.length === 0) return res.status(404).json({ error: "not found" });
-      res.json(rows[0]);
+      res.json({ token: rows[0] });
     } catch (err) { next(err); }
   });
 
@@ -46,7 +52,7 @@ export function createServer() {
   // NOTE: there's no signature/ownership check here yet — anyone can call
   // this for any address. Fine to ship while ronite.fun is small, but add
   // a "sign a message with your wallet" check before this matters.
-  app.patch("/tokens/:address/metadata", async (req, res, next) => {
+  app.patch("/api/ronitefun/tokens/:address/metadata", async (req, res, next) => {
     try {
       const { description = "", twitter = "", telegram = "", website = "" } = req.body ?? {};
       const { rowCount } = await pool.query(
@@ -63,7 +69,7 @@ export function createServer() {
   // expensive on-chain block-scan usetokentrades.ts used to do. Shaped to
   // match CurveTrade exactly so the frontend hook barely has to change.
   // ?since=<unixSeconds> lets the frontend poll for just what's new.
-  app.get("/curves/:curveAddress/trades", async (req, res, next) => {
+  app.get("/api/ronitefun/curves/:curveAddress/trades", async (req, res, next) => {
     try {
       const since = req.query.since ? Number(req.query.since) : 0;
       const limit = Math.min(Number(req.query.limit) || 1000, 5000);
@@ -76,7 +82,7 @@ export function createServer() {
          limit $3`,
         [req.params.curveAddress, since, limit]
       );
-      res.json(rows);
+      res.json({ trades: rows });
     } catch (err) { next(err); }
   });
 
